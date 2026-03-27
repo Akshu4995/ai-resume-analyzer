@@ -10,6 +10,8 @@ export default function Dropzone({ onFile, file }: any) {
     },
   });
 
+  
+
   return (
     <div
       {...getRootProps()}
