@@ -1,34 +1,58 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Dropzone from "@/components/dropzone";
 import { analyzeResume } from "@/api";
 import PreviewCard from "@/components/previewCard";
+import ErrorModal from "@/components/errorModal";
+import Loader from "@/components/loader";
 
 import { useDispatch } from "react-redux";
-import { setResumeData } from "@/redux/resumeSlice";
+import { setResumeData, clearResumeData } from "@/redux/resumeSlice";
 import { useRouter } from "next/navigation";
 
 export default function UploadPage() {
   const [file, setFile] = useState<File | null>(null);
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [userPrompt, setUserPrompt] = useState<string>("");
 
   const dispatch = useDispatch();
   const router = useRouter();
 
+  // Clear resume data and user prompt when component mounts
+  useEffect(() => {
+    dispatch(clearResumeData());
+    setUserPrompt("");
+  }, [dispatch]);
+
   const handleAnalyze = async () => {
-    if (!file) return;
+    if (!file) {
+      setError("Please select a resume file first.");
+      setShowErrorModal(true);
+      return;
+    }
 
     setLoading(true);
+    setError(null);
 
-    const res = await analyzeResume(file);
+    try {
+      const res = await analyzeResume(file, userPrompt);
 
-    dispatch(setResumeData(res));  // 🔥 save in redux
+      dispatch(setResumeData(res));  // 🔥 save in redux
 
-    setLoading(false);
+      setLoading(false);
 
-    router.push("/dashboard");     // 🔥 redirect
+      router.push("/dashboard");     // 🔥 redirect
+    } catch (err: any) {
+      setLoading(false);
+      const errorMessage = err instanceof Error ? err.message : "An unexpected error occurred. Please try again.";
+      setError(errorMessage);
+      setShowErrorModal(true);
+      console.error("Resume analysis error:", err);
+    }
   };
 
   return (
@@ -45,8 +69,11 @@ export default function UploadPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <textarea
-          placeholder="Describe your target job or requirements..."
-          className="w-full border border-gray-300 rounded-lg p-3 mt-4"
+          value={userPrompt}
+          onChange={(e) => setUserPrompt(e.target.value)}
+          placeholder="Describe your target job, qualifications, or specific requirements for analysis..."
+          className="w-full border border-gray-300 rounded-lg p-3 mt-4 focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 transition"
+          rows={4}
         />
 
         {/* LEFT */}
@@ -58,13 +85,12 @@ export default function UploadPage() {
           <button
             onClick={handleAnalyze}
             disabled={loading}
-            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700"
+            className="bg-indigo-600 text-white px-6 py-2 rounded-lg hover:bg-indigo-700 disabled:opacity-50 transition"
           >
             {loading ? "Analyzing..." : "Analyze Resume"}
           </button>
 
           {/* Steps (Dynamic) */}
-          <PreviewCard data={data} />
 
           {/* <div className="grid grid-cols-3 gap-4">
             {["Upload", "Analyze", "Results"].map((step, i) => (
@@ -89,6 +115,16 @@ export default function UploadPage() {
         </div>
 
       </div>
+
+      {/* Error Modal */}
+      <ErrorModal
+        isOpen={showErrorModal}
+        message={error || ""}
+        onClose={() => setShowErrorModal(false)}
+      />
+
+      {/* Loader */}
+      {loading && <Loader />}
     </div>
   );
 }

@@ -2,14 +2,25 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { useSelector, useDispatch } from "react-redux";
+import { clearResumeData } from "@/redux/resumeSlice";
 
 export default function Sidebar() {
   const path = usePathname();
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const resumeData = useSelector((state: any) => state.resume.data);
+
+  const handleAnalyzeNew = () => {
+    dispatch(clearResumeData());
+    router.push("/upload");
+  };
 
   const menu = [
-    { name: "Upload", href: "/upload" },
-    { name: "Dashboard", href: "/dashboard" },
-    { name: "History", href: "/history" },
+    { name: "Upload", href: "/upload", disabled: false },
+    { name: "Dashboard", href: "/dashboard", disabled: !resumeData },
+    { name: "History", href: "/history", disabled: !resumeData },
   ];
 
   return (
@@ -29,23 +40,35 @@ export default function Sidebar() {
       <ul className="space-y-2">
         {menu.map((item) => (
           <li key={item.href}>
-            <Link
-              href={item.href}
-              className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${
-                path === item.href
-                  ? "bg-indigo-50 text-indigo-600"
-                  : "text-gray-600 hover:bg-gray-100"
-              }`}
-            >
-              {item.name}
-            </Link>
+            {item.disabled ? (
+              <div
+                title="Upload a resume to unlock this section"
+                className="block px-4 py-2 rounded-lg text-sm font-medium text-gray-400 bg-gray-50 cursor-not-allowed opacity-50"
+              >
+                {item.name}
+              </div>
+            ) : (
+              <Link
+                href={item.href}
+                className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  path === item.href
+                    ? "bg-indigo-50 text-indigo-600"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                {item.name}
+              </Link>
+            )}
           </li>
         ))}
       </ul>
 
       {/* Bottom Button */}
       <div className="mt-10">
-        <button className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700">
+        <button 
+          onClick={handleAnalyzeNew}
+          className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition"
+        >
           + Analyze New
         </button>
       </div>

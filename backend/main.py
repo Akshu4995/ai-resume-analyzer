@@ -52,9 +52,9 @@ async def analyze_resume(
 
         # 🤖 AI Prompt
         prompt = f"""
-        You are an expert ATS system.
+        As an expert Technical Recruiter and Resume Optimizer with 15+ years of experience, analyze the following resume content against the provided user instructions.
 
-        User goal:
+       USER INSTRUCTIONS/JOB DESCRIPTION
         {user_prompt}
 
         Analyze this resume.
@@ -65,16 +65,18 @@ async def analyze_resume(
         - Good: 70–85
         - Excellent: 85–95
 
-        Return ONLY JSON:
+       Your goal is to provide a high-quality, actionable critique. You must respond ONLY in JSON format with the following keys:
 
-        {{
-          "score": number,
-          "skills": ["skill1", "skill2"],
-          "experience": "short summary",
-          "improvements": ["improve1", "improve2"]
-        }}
+1. "overall_score": A number from 0-100.
+2. "summary": A 2-sentence professional overview of the candidate.
+3. "strengths": An array of 3 specific technical or professional strengths found.
+4. "weaknesses": An array of 3 specific areas for improvement.
+5. "ats_optimization": A list of keywords missing that are relevant to the user's instructions.
+6. "action_items": A list of 3 concrete steps the user should take to improve this resume.
 
-        Resume:
+Ensure the tone is professional, encouraging, and critical where necessary. Do not include any text outside of the JSON block.
+
+       RESUME CONTENT:
         {text}
         """
 

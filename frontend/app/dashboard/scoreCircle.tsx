@@ -11,11 +11,22 @@ export default function ScoreCircle({ score = 0 }) {
   const strokeDashoffset =
     circumference - (score / 100) * circumference;
 
-  // 🔥 Dynamic color
+  // 🔥 Dynamic color based on score
   let color = "#ef4444"; // red
 
-  if (score >= 75) color = "#22c55e"; // green
-  else if (score >= 50) color = "#eab308"; // yellow
+  if (score >= 75) {
+    color = "#22c55e"; // green
+  } else if (score >= 50) {
+    color = "#eab308"; // yellow
+  }
+
+  // 🔥 Dynamic status text
+  let statusText = "Needs Work";
+  if (score >= 75) {
+    statusText = "Excellent";
+  } else if (score >= 50) {
+    statusText = "Good";
+  }
 
   return (
     <div className="bg-white border border-gray-200 rounded-2xl p-8 flex flex-col items-center shadow-sm">
@@ -64,11 +75,7 @@ export default function ScoreCircle({ score = 0 }) {
             className="text-sm font-medium"
             style={{ color }}
           >
-            {score >= 75
-              ? "Excellent"
-              : score >= 50
-              ? "Good"
-              : "Needs Work"}
+            {statusText}
           </p>
         </div>
 
