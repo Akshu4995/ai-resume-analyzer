@@ -5,14 +5,14 @@ import axios from "axios";
 // 1. Define the Shape of our state
 interface ResumeState {
   data: any;
-  text: string; 
+  text: string;
   loading: boolean;
   error: string | null;
 }
 
 const initialState: ResumeState = {
   data: null,
-  text: "", 
+  text: "",
   loading: false,
   error: null,
 };
@@ -23,7 +23,8 @@ export const analyzeResume = createAsyncThunk(
   async (formData: FormData, { rejectWithValue }) => {
     try {
       // Replace with your actual Render/Localhost URL
-      const response = await axios.post("http://localhost:8000/analyze-resume", formData, {
+      // const response = await axios.post("http://localhost:8000/analyze-resume", formData, {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/analyze-resume`, formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
       return response.data; // This now includes 'extracted_text' from your main.py
@@ -56,7 +57,7 @@ const resumeSlice = createSlice({
         state.loading = false;
         state.data = action.payload;
         // ✅ This catches the text from your Python backend and saves it
-        state.text = action.payload.extracted_text || ""; 
+        state.text = action.payload.extracted_text || "";
       })
       // If the API fails (like a 500 error)
       .addCase(analyzeResume.rejected, (state, action) => {

@@ -43,7 +43,8 @@ export const generateCoverLetter = createAsyncThunk(
   'jobMatch/generateLetter',
   async (payload: { resumeText: string; jobTitle: string; jobDescription: string }, { rejectWithValue }) => {
     try {
-      const response = await axios.post("http://localhost:8000/generate-cover-letter", {
+      // const response = await axios.post("http://localhost:8000/generate-cover-letter", {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/generate-cover-letter`, {
         resume_text: payload.resumeText,
         job_title: payload.jobTitle,
         job_description: payload.jobDescription
