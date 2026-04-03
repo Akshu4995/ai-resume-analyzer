@@ -25,7 +25,8 @@ export const fetchJobMatches = createAsyncThunk(
   async (payload: { resumeText: string; jobs: any[] }, { rejectWithValue }) => {
     try {
       // 🛠️ FIX: Map 'resumeText' to 'resume_text' before sending to FastAPI
-      const response = await axios.post("http://localhost:8000/match-jobs", {
+      // const response = await axios.post("http://localhost:8000/match-jobs", {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/match-jobs`, {
           resume_text: payload.resumeText, // Changed from payload to explicit mapping
           jobs: payload.jobs
       });

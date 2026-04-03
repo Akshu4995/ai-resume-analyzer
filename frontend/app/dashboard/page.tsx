@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "@/redux/store";
+import Chatbot from "@/components/chatbot"; // Ensure the path is correct
 
 // Import your awesome components!
 import ScoreCircle from "./scoreCircle";
@@ -11,7 +12,6 @@ import StructureCard from "./structureCard";
 import KeywordCard from "./keywordCard";
 import ProgressCard from "./progressCard";
 import { Info } from "lucide-react";
-
 export default function DashboardPage() {
   const router = useRouter();
   const { data: resumeData, text: resumeText } = useSelector((state: RootState) => state.resume);
@@ -74,6 +74,7 @@ export default function DashboardPage() {
             </li>
           ))}
         </ul>
+        <Chatbot /> {/* Add the chatbot component here, it will handle its own visibility based on resumeText */}
       </div>
 
     </div>

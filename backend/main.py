@@ -41,6 +41,15 @@ class CoverLetterRequest(BaseModel):
     job_title: str
     job_description: str = "" 
 
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+class ChatRequest(BaseModel):
+    resume_text: str
+    message: str
+    history: List[ChatMessage] = []
+
 
 @app.get("/")
 def home():
@@ -206,4 +215,49 @@ async def generate_cover_letter(data: CoverLetterRequest):
 
     except Exception as e:
         print(f"Backend Error: {str(e)}") 
+        return {"error": str(e)}
+    
+    # 🔥 NEW PHASE: AI Resume Coach Chatbot
+@app.post("/chat")
+async def resume_chat(data: ChatRequest):
+    try:
+        # 1. Define the System Prompt to give the AI its persona
+        system_prompt = f"""
+        You are an elite Technical Recruiter and Resume Coach. 
+        You are currently having a conversation with a candidate to help them improve their resume.
+        
+        CANDIDATE'S CURRENT RESUME:
+        {data.resume_text}
+        
+        RULES:
+        1. Answer the user's question directly and concisely.
+        2. Always base your advice strictly on the resume provided above.
+        3. If they ask to rewrite a bullet point, provide 2-3 highly professional, ATS-friendly options using the STAR method (Situation, Task, Action, Result).
+        4. Keep your tone encouraging but highly professional.
+        """
+
+        # 2. Format the message history for Llama 3
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add previous history so the bot remembers the conversation
+        for msg in data.history:
+            if msg.role in ["user", "assistant"]:
+                messages.append({"role": msg.role, "content": msg.content})
+                
+        # Finally, add the user's latest message
+        messages.append({"role": "user", "content": data.message})
+
+        # 3. Call the AI
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=messages,
+            temperature=0.5 # A balance between strict facts and creative writing
+        )
+
+        reply = response.choices[0].message.content.strip()
+        
+        return {"status": "success", "reply": reply}
+
+    except Exception as e:
+        print(f"Chatbot Error: {str(e)}") 
         return {"error": str(e)}

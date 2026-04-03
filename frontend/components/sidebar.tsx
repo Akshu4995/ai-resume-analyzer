@@ -1,15 +1,15 @@
 "use client";
 
-import React, { useState } from "react"; 
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useRouter } from "next/navigation";
 import { useSelector, useDispatch } from "react-redux";
 import { clearResumeData } from "@/redux/resumeSlice";
-import { Menu, X } from "lucide-react"; 
+import { Menu, X } from "lucide-react";
 
 export default function Sidebar() {
-  const [isOpen, setIsOpen] = useState(false); 
+  const [isOpen, setIsOpen] = useState(false);
   const path = usePathname();
   const router = useRouter();
   const dispatch = useDispatch();
@@ -17,14 +17,14 @@ export default function Sidebar() {
 
   const handleAnalyzeNew = () => {
     dispatch(clearResumeData());
-    setIsOpen(false); 
+    setIsOpen(false);
     router.push("/upload");
   };
 
   const menu = [
     { name: "Upload", href: "/upload", disabled: false },
     { name: "Dashboard", href: "/dashboard", disabled: !resumeData },
-    { name: "Job Matcher", href: "/match-jobs", disabled: !resumeData }, 
+    { name: "Job Matcher", href: "/match-jobs", disabled: !resumeData },
     { name: "History", href: "/history", disabled: !resumeData },
     // 🔥 Added Job Matcher here, disabled until a resume is uploaded!
   ];
@@ -33,14 +33,14 @@ export default function Sidebar() {
     <>
       {/* 1. MOBILE OVERLAY - Closes menu when tapping outside */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/20 backdrop-blur-sm z-40 md:hidden"
           onClick={() => setIsOpen(false)}
         />
       )}
 
       {/* 2. MOBILE TOGGLE BUTTON - Floating button for phones */}
-      <button 
+      <button
         onClick={() => setIsOpen(!isOpen)}
         className="fixed top-4 left-4 z-50 p-2 bg-indigo-600 text-white rounded-lg md:hidden shadow-lg"
       >
@@ -56,13 +56,16 @@ export default function Sidebar() {
       `}>
 
         {/* Logo */}
+        {/* Logo - Now a clickable link back to the Landing Page! */}
         <div className="mb-10">
-          <h1 className="text-xl font-bold text-indigo-600">
-            Editorial AI
-          </h1>
-          <p className="text-sm text-gray-500">
-            Resume Intelligence
-          </p>
+          <Link href="/" className="block group">
+            <h1 className="text-xl font-bold text-indigo-600 transition-colors group-hover:text-indigo-700">
+              Editorial AI
+            </h1>
+            <p className="text-sm text-gray-500 transition-colors group-hover:text-gray-700">
+              Resume Intelligence
+            </p>
+          </Link>
         </div>
 
         {/* Menu */}
@@ -79,12 +82,11 @@ export default function Sidebar() {
               ) : (
                 <Link
                   href={item.href}
-                  onClick={() => setIsOpen(false)} 
-                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${
-                    path === item.href
+                  onClick={() => setIsOpen(false)}
+                  className={`block px-4 py-2 rounded-lg text-sm font-medium transition ${path === item.href
                       ? "bg-indigo-50 text-indigo-600"
                       : "text-gray-600 hover:bg-gray-100"
-                  }`}
+                    }`}
                 >
                   {item.name}
                 </Link>
@@ -95,7 +97,7 @@ export default function Sidebar() {
 
         {/* Bottom Button */}
         <div className="mt-10">
-          <button 
+          <button
             onClick={handleAnalyzeNew}
             className="w-full bg-indigo-600 text-white py-2 rounded-lg hover:bg-indigo-700 transition"
           >
