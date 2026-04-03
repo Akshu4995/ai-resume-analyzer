@@ -1,7 +1,8 @@
 "use client";
 
 import { motion, AnimatePresence } from "framer-motion";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
+import { AlertCircle, X } from "lucide-react";
 
 export default function ErrorModal({
   isOpen,
@@ -14,7 +15,7 @@ export default function ErrorModal({
 }) {
   useEffect(() => {
     if (isOpen) {
-      const timer = setTimeout(onClose, 5000);
+      const timer = setTimeout(onClose, 4000);
       return () => clearTimeout(timer);
     }
   }, [isOpen, onClose]);
@@ -22,55 +23,34 @@ export default function ErrorModal({
   return (
     <AnimatePresence>
       {isOpen && (
-        <>
-          {/* Backdrop */}
+        <div className="fixed inset-x-0 top-10 z-[100] flex justify-center px-4 pointer-events-none">
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            onClick={onClose}
-            className="fixed inset-0 bg-black/50 z-40"
-          />
-
-          {/* Modal */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95, y: 20 }}
-            animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.3 }}
-            className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-[#0f172a] border border-red-500/50 rounded-2xl p-6 shadow-2xl z-50 max-w-md w-full mx-4"
+            initial={{ opacity: 0, y: -20, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -20, scale: 0.95 }}
+            className="pointer-events-auto flex items-center gap-3 bg-white border border-red-100 px-5 py-4 rounded-2xl shadow-xl shadow-indigo-100/50 max-w-md w-full"
           >
-            {/* Header */}
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-10 h-10 bg-red-500/20 rounded-full flex items-center justify-center">
-                <span className="text-red-500 text-lg">⚠️</span>
-              </div>
-              <h2 className="text-xl font-bold text-white">Error</h2>
+            {/* Minimal Error Icon */}
+            <div className="shrink-0 text-red-500">
+              <AlertCircle size={20} />
             </div>
 
-            {/* Message */}
-            <p className="text-gray-300 mb-6 leading-relaxed">
-              {message}
-            </p>
+            {/* Error Message */}
+            <div className="flex-1">
+              <p className="text-sm font-medium text-gray-800 leading-tight">
+                {message}
+              </p>
+            </div>
 
-            {/* Close Button */}
+            {/* Simple Close X */}
             <button
               onClick={onClose}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg transition"
+              className="shrink-0 p-1 text-gray-400 hover:text-gray-600 transition-colors"
             >
-              Dismiss
+              <X size={18} />
             </button>
-
-            {/* Auto close indicator */}
-            <motion.div
-              initial={{ scaleX: 1 }}
-              animate={{ scaleX: 0 }}
-              transition={{ duration: 5 }}
-            //   origin="left"
-              className="h-1 bg-red-500/50 mt-4 rounded"
-            />
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
