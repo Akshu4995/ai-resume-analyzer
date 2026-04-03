@@ -1,10 +1,12 @@
 from fastapi import FastAPI, UploadFile, File, Form
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 import pdfplumber
 from groq import Groq
 import json
 import re
 import os
+from typing import List
 from dotenv import load_dotenv
 
 # 🔥 Load env
@@ -24,12 +26,28 @@ app.add_middleware(
 # 🔥 API Key
 client = Groq(api_key=os.getenv("GROQ_API_KEY"))
 
+# 🛠️ Schemas for Data Validation
+class JobDescription(BaseModel):
+    title: str
+    description: str
+
+class MatchRequest(BaseModel):
+    resume_text: str
+    jobs: List[JobDescription]
+
+# ✅ FIXED: Moved outside of MatchRequest!
+class CoverLetterRequest(BaseModel):
+    resume_text: str
+    job_title: str
+    job_description: str = "" 
+
+
 @app.get("/")
 def home():
     return {"message": "API is running 🚀"}
 
-
-# 🔥 Resume Analyzer API
+# ✅ EXISTING FUNCTIONALITY (Untouched)
+# ✅ UPGRADED: Advanced AI Resume Analyzer
 @app.post("/analyze-resume")
 async def analyze_resume(
     file: UploadFile = File(...),
@@ -40,102 +58,152 @@ async def analyze_resume(
 
     try:
         text = ""
-
-        # 📄 Extract PDF text
         with pdfplumber.open(file.file) as pdf:
             for page in pdf.pages:
                 text += page.extract_text() or ""
 
-        # 🔍 Debug (optional)
-        print("==== TEXT PREVIEW ====")
-        print(text[:500])
-
-        # 🤖 AI Prompt
+        # 🔥 The Elite Prompt for the Dashboard
         prompt = f"""
-        As an expert Technical Recruiter and Resume Optimizer with 15+ years of experience, analyze the following resume content against the provided user instructions.
-
-       USER INSTRUCTIONS/JOB DESCRIPTION
-        {user_prompt}
-
-        Analyze this resume.
-
-        SCORING RULES:
-        - Poor: 30–50
-        - Average: 50–70
-        - Good: 70–85
-        - Excellent: 85–95
-
-       Your goal is to provide a high-quality, actionable critique. You must respond ONLY in JSON format with the following keys:
-
-1. "overall_score": A number from 0-100.
-2. "summary": A 2-sentence professional overview of the candidate.
-3. "strengths": An array of 3 specific technical or professional strengths found.
-4. "weaknesses": An array of 3 specific areas for improvement.
-5. "ats_optimization": A list of keywords missing that are relevant to the user's instructions.
-6. "action_items": A list of 3 concrete steps the user should take to improve this resume.
-
-Ensure the tone is professional, encouraging, and critical where necessary. Do not include any text outside of the JSON block.
-
-       RESUME CONTENT:
+        You are an elite AI Career Coach and ATS Expert.
+        Analyze this resume and provide a deeply detailed JSON response.
+        
+        USER TARGET ROLE/INSTRUCTIONS: {user_prompt or 'General Software Engineer'}
+        
+        RESUME CONTENT:
         {text}
+        
+        Return ONLY a raw JSON object. Do not include markdown like ```json.
+        Strictly include these exact keys:
+        - "score": (integer 0-100, overall ATS compatibility score)
+        - "formatting_score": (integer 0-100, visual/readability structure score)
+        - "career_summary": (A 2-3 sentence strategic overview of their career transition or growth opportunity based on their skills)
+        - "found_keywords": (List of 5-8 strong industry keywords found in their resume)
+        - "missing_keywords": (List of 5-8 highly sought-after industry keywords they are missing for their target role)
+        - "roadmap": (Array of exactly 3 objects, each with "step" (integer 1-3) and "action" (string 1-2 sentences) detailing a career growth plan)
+        - "improvements": (Array of 3-4 specific, actionable tips to improve the resume)
         """
 
-        # 🔥 AI Call
         response = client.chat.completions.create(
             model="llama-3.3-70b-versatile",
             messages=[{"role": "user", "content": prompt}],
-            temperature=0.3
+            temperature=0.2 # Keep it low for strict JSON formatting
         )
 
         ai_text = response.choices[0].message.content
-
-        # 🧹 Clean response
         clean_text = re.sub(r"```json|```", "", ai_text).strip()
 
         try:
             parsed = json.loads(clean_text)
-        except:
+        except Exception as e:
+            # Fallback if the AI messes up the formatting, so the UI doesn't crash
+            print(f"JSON Parse Error: {str(e)}\nRaw Output: {clean_text}")
             parsed = {
-                "score": 60,
-                "skills": [],
-                "experience": "",
-                "improvements": ["Parsing error"]
+                "score": 60, 
+                "formatting_score": 50,
+                "career_summary": "We couldn't generate a full summary. Please try uploading again.",
+                "found_keywords": ["Error loading keywords"], 
+                "missing_keywords": [],
+                "roadmap": [],
+                "improvements": ["Parsing error. The AI did not return valid JSON."]
             }
 
-        # 🔥 Fix low score issue
-        if parsed.get("score", 0) < 30:
-            parsed["score"] = 55
-
-        # 💼 Job matching
+        # Keep your original static matching logic so old components don't break
         jobs = [
-            {"title": "Frontend Developer", "skills": ["React", "JavaScript"]},
-            {"title": "Backend Developer", "skills": ["Python", "API"]},
-            {"title": "Full Stack Developer", "skills": ["React", "Node.js", "MongoDB"]},
+            {"title": "Frontend Developer", "skills": ["React", "JavaScript", "Next.js"]},
+            {"title": "Backend Developer", "skills": ["Python", "API", "FastAPI"]},
+            {"title": "Full Stack Developer", "skills": ["React", "Node.js", "MongoDB", "Python"]},
         ]
-
         matched_jobs = []
-        parsed_skills = [normalize(s) for s in parsed.get("skills", [])]
-
+        parsed_skills = [normalize(s) for s in parsed.get("found_keywords", [])]
         for job in jobs:
             job_skills = [normalize(s) for s in job["skills"]]
+            match_count = sum(1 for ps in parsed_skills for js in job_skills if ps in js or js in ps)
+            match_percent = int((match_count / len(job_skills)) * 100) if job_skills else 0
+            matched_jobs.append({"title": job["title"], "match": max(match_percent, 10)})
 
-            match_count = 0
-            for ps in parsed_skills:
-                for js in job_skills:
-                    if ps in js or js in ps:
-                        match_count += 1
-
-            match_percent = int((match_count / len(job_skills)) * 100)
-
-            matched_jobs.append({
-                "title": job["title"],
-                "match": max(match_percent, 10)
-            })
-
-        return {
-            **parsed,
-            "job_matches": matched_jobs
-        }
+        # Return all the new rich data + the extracted text for the job matcher
+        return {**parsed, "job_matches": matched_jobs, "extracted_text": text}
 
     except Exception as e:
+        print(f"Analyze Resume Error: {str(e)}")
+        return {"error": str(e)}
+
+# 🔥 Advanced AI Job Matcher
+@app.post("/match-jobs")
+async def match_jobs(data: MatchRequest):
+    try:
+        # Prepare the jobs for the AI to analyze
+        jobs_context = "\n".join([f"ID {i}: {j.title} - {j.description[:500]}..." for i, j in enumerate(data.jobs)])
+
+        prompt = f"""
+        You are an elite AI Recruitment Engine. Compare the following Resume against the list of Job Descriptions.
+        Provide a deeply detailed, professional analysis.
+        
+        RESUME:
+        {data.resume_text}
+
+        JOBS TO MATCH:
+        {jobs_context}
+
+        Return ONLY a raw JSON array of objects. Do not include markdown formatting like ```json.
+        Each object must strictly have these exact keys:
+        - "title": (string)
+        - "match_score": (integer 0-100)
+        - "matching_skills": (list of strings found in the resume that match the job)
+        - "missing_skills": (list of strings missing from the resume)
+        - "detailed_analysis": (A comprehensive 3-4 sentence paragraph explaining the candidate's specific fit, referencing their actual experience)
+        - "recommendation": (A specific, actionable tip on how to tailor their resume for this exact role)
+        """
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile",
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.3  
+        )
+
+        ai_res = response.choices[0].message.content
+        clean_res = re.sub(r"```json|```", "", ai_res).strip()
+        
+        return {"status": "success", "matches": json.loads(clean_res)}
+
+    except Exception as e:
+        return {"error": str(e)}
+    
+# 🔥 AI Cover Letter Generator
+@app.post("/generate-cover-letter")
+async def generate_cover_letter(data: CoverLetterRequest):
+    try:
+        prompt = f"""
+        You are an expert career coach and executive copywriter. 
+        Write a highly professional, engaging, and tailored cover letter for the candidate based on their resume.
+        
+        CANDIDATE'S RESUME:
+        {data.resume_text}
+        
+        TARGET JOB TITLE:
+        {data.job_title}
+        
+        TARGET JOB CONTEXT:
+        {data.job_description}
+        
+        RULES:
+        1. Keep it to 3-4 impactful paragraphs.
+        2. Focus on matching their actual resume experience to the target job.
+        3. Do NOT use generic placeholders like [Company Name] if you can avoid it.
+        4. The tone should be confident, modern, and industry-standard.
+        5. Return ONLY the cover letter text.
+        """
+
+        response = client.chat.completions.create(
+            model="llama-3.3-70b-versatile", 
+            messages=[{"role": "user", "content": prompt}],
+            temperature=0.7 
+        )
+
+        generated_text = response.choices[0].message.content.strip()
+        
+        return {"status": "success", "cover_letter": generated_text}
+
+    except Exception as e:
+        print(f"Backend Error: {str(e)}") 
         return {"error": str(e)}
